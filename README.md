@@ -11,7 +11,7 @@ This repository contains a version of libxml2 and libzorba compiled to LLVM byte
 The` build.sh` script compiles `src/zorba.cpp` to JavaScript.
 Simply execute the script with the `LLVM` and `EMSCRIPTEN` variables:
 ```bash
-$LLVM=/path/to/llvm/bin EMSCRIPTEN=/path/to/emscripten ./build.sh
+$ LLVM=/path/to/llvm/bin EMSCRIPTEN=/path/to/emscripten ./build.sh
 ```
 
 `build_debug.sh` is identical to `build.sh` but produces a debuggable output.
@@ -22,10 +22,10 @@ Tutorial on how to build libxml2 to llvm bytecode is available at http://mozakai
 ###Zorba
 Checkout Zorba LLVM branch:
 ```bash
-bzr branch lp:~zorba-coders/zorba/llvm
+$ bzr branch lp:~zorba-coders/zorba/llvm
 ```
 To build
 ```bash
-$LLVM=/path/to/llvm/bin EMSCRIPTEN=/path/to/emscripten ./build_zorba.sh
+$ LLVM=/path/to/llvm/bin EMSCRIPTEN=/path/to/emscripten ./build_zorba.sh
 ```
 
