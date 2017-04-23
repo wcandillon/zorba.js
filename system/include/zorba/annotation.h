@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,15 @@
 
 #include <zorba/config.h>
 #include <zorba/api_shared_types.h>
-#include <zorba/smart_ptr.h>
+#include <zorba/util/smart_ptr.h>
 
 namespace zorba {
 
 class ZORBA_DLL_PUBLIC Annotation : public SmartObject
 {
  public:
+  typedef unsigned size_type;
+
   /** \brief Destructor
    */
   virtual ~Annotation() {}
@@ -43,7 +45,7 @@ class ZORBA_DLL_PUBLIC Annotation : public SmartObject
    *
    *  the function will return N.
    */
-  virtual unsigned int
+  virtual size_type
   getLiteralsCount() const = 0;
   
   /**
@@ -54,7 +56,10 @@ class ZORBA_DLL_PUBLIC Annotation : public SmartObject
    *  the function will return the i-th literal.
    */
   virtual Item
-  getLiteral(unsigned int i) const = 0;
+  getLiteral(size_type i) const = 0;
+
+protected:
+  Annotation() { }
 };
 
 } /* namespace zorba */

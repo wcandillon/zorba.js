@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,10 @@ namespace internal {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * \internal
+ * The type-independent, factored-out-code base class for SystemDiagnostic.
+ */
 class ZORBA_DLL_PUBLIC SystemDiagnosticBase : public Diagnostic {
 public:
   /**
@@ -79,7 +83,6 @@ public:
   }
 
   // inherited
-  zorba::diagnostic::category category() const { return qname_.category(); }
   zorba::diagnostic::kind kind() const { return qname_.kind(); }
   zorba::diagnostic::QName const& qname() const { return qname_; }
 

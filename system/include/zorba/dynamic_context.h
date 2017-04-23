@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,14 @@
 
 #include <time.h>
 #include <istream>
-#include <memory>
 
 #include <zorba/config.h>
 #include <zorba/api_shared_types.h>
-#include <zorba/static_context_consts.h>
-#include <zorba/xmldatamanager.h>
 #include <zorba/external_function_parameter.h>
+#include <zorba/static_context_consts.h>
+#include <zorba/util/calendar.h>
+#include <zorba/util/locale.h>
+#include <zorba/xmldatamanager.h>
 
 
 namespace zorba {
@@ -58,13 +59,38 @@ class ZORBA_DLL_PUBLIC DynamicContext
    *
    * @param aQName the QName that identifies the external variable.
    * @param aItem the Item that is used as value for the variable.
+   * @param cast If \c true, attempt to cast \a aItem to the type (if any) that
+   * the external variable was declared as.
    * @return true if the variable has been set, false otherwise.
    * @throw ZorbaException if an error occured (e.g. the given Item is not valid).
    */
   virtual bool
   setVariable(
       const String& aQName,
-      const Item& aItem) = 0;
+      const Item& aItem,
+      bool cast = false) = 0;
+
+  /** 
+   * \brief Defines the external variable identified by an expanded QName and
+   * assigns it the value of aItem.
+   *
+   * The named external variable may be located in the main query or in any
+   * modules imported directly or indirectly by the query.
+   *
+   * @param aNamespace the namespace URI of the variable's expanded QName
+   * @param aLocalname the local name of the variable's expanded QName
+   * @param aItem the Item that is used as value for the variable.
+   * @param cast If \c true, attempt to cast \a aItem to the type (if any) that
+   * the external variable was declared as.
+   * @return true if the variable has been set successfully, false otherwise.
+   * @throw ZorbaException if an error occured (e.g. the given Item is not valid).
+   */
+  virtual bool
+  setVariable(
+      const String& inNamespace,
+      const String& inLocalname,
+      const Item& inValue,
+      bool cast = false) = 0;
 
   /**
    * \brief Defines the external variable identified by aQName and assigns it
@@ -81,13 +107,19 @@ class ZORBA_DLL_PUBLIC DynamicContext
    * @param aQName the QName that identifies the external variable.
    * @param aIterator the Iterator producing the sequence that is assigned
    *        to the variable.
+   * @param cast If \c true, attempt to cast \a each item to the type (if any)
+   * @param distinct If \c true, assign distinct values of aIterator to the
+   *        variable
+   * that the external variable was declared as.
    * @return true if the variable has been set successfully, false otherwise.
    * @throw ZorbaException if an error occured (e.g. the given Iterator is not valid).
    */
   virtual bool
   setVariable( 
       const String& aQName,
-      const Iterator_t& aIterator) = 0;
+      const Iterator_t& aIterator,
+      bool cast = false,
+      bool distinct = false) = 0;
 
   /** 
    * \brief Defines the external variable identified by an expanded QName and
@@ -100,6 +132,10 @@ class ZORBA_DLL_PUBLIC DynamicContext
    * @param aLocalname the local name of the variable's expanded QName
    * @param aIterator the Iterator producing the sequence that is assigned
    *        to the variable.
+   * @param cast If \c true, attempt to cast \a each item to the type (if any)
+   * @param distinct If \c true, assign distinct values of aIterator to the
+   *        variable
+   * that the external variable was declared as.
    * @return true if the variable has been set successfully, false otherwise.
    * @throw ZorbaException if an error occured (e.g. the given Iterator is not valid).
    */
@@ -107,7 +143,55 @@ class ZORBA_DLL_PUBLIC DynamicContext
   setVariable( 
       const String& aNamespace,
       const String& aLocalname,
-      const Iterator_t& aIterator) = 0;
+      const Iterator_t& aIterator,
+      bool cast = false,
+      bool distinct = false) = 0;
+
+  /** 
+   * \brief Defines the external variable identified by an expanded QName and
+   * assigns it the value of aItem.
+   *
+   * The named external variable may be located in the main query or in any
+   * modules imported directly or indirectly by the query.
+   *
+   * @param aQName the QName that identifies the external variable.
+   * @param aItem the Item that is used as value for the variable.
+   * @param cast If \c true, attempt to cast \a aItem to the type (if any) that
+   * the external variable was declared as.
+   * @return true if the variable has been set successfully, false otherwise.
+   * @throw ZorbaException if an error occured (e.g. the given Item is not
+   * valid).
+   */
+  virtual bool
+  setVariable(
+      const Item& aQName,
+      const Item& aItem,
+      bool cast = false) = 0;
+
+  /** 
+   * \brief Defines the external variable identified by an expanded QName and
+   * assigns it the value of aItem.
+   *
+   * The named external variable may be located in the main query or in any
+   * modules imported directly or indirectly by the query.
+   *
+   * @param aQName the QName that identifies the external variable.
+   * @param aIterator the Iterator producing the sequence that is assigned
+   *        to the variable.
+   * @param cast If \c true, attempt to cast \a each item to the type (if any)
+   * @param distinct If \c true, assign distinct values of aIterator to the
+   *        variable
+   * that the external variable was declared as.
+   * @return true if the variable has been set successfully, false otherwise.
+   * @throw ZorbaException if an error occured (e.g. the given Item is not
+   * valid).
+   */
+  virtual bool
+  setVariable(
+      const Item& aQName,
+      const Iterator_t& aIterator,
+      bool cast = false,
+      bool distinct = false) = 0;
 
   /** \brief Returns the current value of an external
    * variable. Exactly one of the two return values (aItem or
@@ -211,7 +295,7 @@ class ZORBA_DLL_PUBLIC DynamicContext
    *         or dateTime value that does not have a timezone is used in a comparison or
    *         arithmetic operation.
    *
-   * @param aTimezone the implicit timezone as int that should be used.
+   * @param aTimezone the number of seconds east of the prime meridian.
    * @return true if the implicit timezone has been set successfully, false otherwise.
    * @throw ZorbaException if an error occured.
    */
@@ -221,8 +305,9 @@ class ZORBA_DLL_PUBLIC DynamicContext
   /** \brief Retrieve the implicit timezone used in comparisons or arithmetic operations
    *         of date, time, or dateTime values.
    *
-   * @return int the implicit timezone. Note that 0 is returned if an error occured
-   *         and an DiagnosticHandler is used.
+   * @return the implicit timezone as the number of seconds east of the
+   * prime medidian. Note that 0 is returned if an error occured and an
+   * DiagnosticHandler is used.
    * @throw ZorbaException if an error occured.
    */
   virtual int
@@ -246,6 +331,40 @@ class ZORBA_DLL_PUBLIC DynamicContext
    */
   virtual Item
   getDefaultCollection() const = 0;
+
+  /** \brief Sets the locale.
+   *
+   * @param aLang The language to set.
+   * @param aCountry The country to set.
+   */
+  virtual void
+  setLocale( locale::iso639_1::type aLang,
+             locale::iso3166_1::type aCountry ) = 0;
+
+  /** \brief Gets the locale.
+   *
+   * @param aLang A pointer to a \c iso639_1::type to receive the language.
+   * If \c null, this is not set.
+   * @param aCountry A pointer to a \c iso3166_1::type to receive the country.
+   * If \c null, this is not set.
+   */
+  virtual void
+  getLocale( locale::iso639_1::type *aLang,
+             locale::iso3166_1::type *aCountry ) const = 0;
+
+  /** \brief Sets the calendar.
+   *
+   * @param aCalendar The calendar to use.
+   */
+  virtual void
+  setCalendar( time::calendar::type aCalendar ) = 0;
+
+  /** \brief Gets the current calendar.
+   *
+   * @return the current calendar.
+   */
+  virtual time::calendar::type
+  getCalendar() const = 0;
 
   /** \brief Add a name-value pair to this context.
    *         The value can be accessed in the evaluate method

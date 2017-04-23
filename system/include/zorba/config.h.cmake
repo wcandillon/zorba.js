@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@
 #ifdef CYGWIN
 # undef WIN32
 #endif /* CYGWIN */
+#cmakedefine ZORBA_BIG_ENDIAN @ZORBA_BIG_ENDIAN@
+#cmakedefine ZORBA_LITTLE_ENDIAN @ZORBA_LITTLE_ENDIAN@
 
 #ifdef WIN32
 # pragma warning( disable: 4251 )
@@ -50,13 +52,14 @@
 #cmakedefine ZORBA_HAVE_STDLIB_H
 #cmakedefine ZORBA_HAVE_SYS_MOUNT_H
 #cmakedefine ZORBA_HAVE_SYS_TYPES_H
+#cmakedefine ZORBA_HAVE_TZFILE_H
 #cmakedefine ZORBA_HAVE_USTRING_H
 #cmakedefine ZORBA_HAVE_UTYPES_H
 #cmakedefine ZORBA_HAVE_UUID_H
 
 // Platform functions
-#cmakedefine ZORBA_HAVE_CLOCKGETTIME_FUNCTION
-#cmakedefine ZORBA_HAVE_RUSAGE_FUNCTION
+#cmakedefine ZORBA_HAVE_CLOCKGETTIME
+#cmakedefine ZORBA_HAVE_GETRUSAGE
 #cmakedefine ZORBA_HAVE_STRCAT_S_FUNCTION
 #cmakedefine ZORBA_HAVE_STRCPY_S_FUNCTION
 #cmakedefine ZORBA_HAVE_STRICMP_FUNCTION
@@ -69,6 +72,10 @@
 #cmakedefine ZORBA_HAVE_MS_INT32
 #cmakedefine ZORBA_HAVE_MS_UINT32
 #cmakedefine ZORBA_HAVE_UINT32_T
+#cmakedefine ZORBA_HAVE_STRUCT_TM_TM_GMTOFF
+#cmakedefine ZORBA_HAVE_STRUCT_TM___TM_GMTOFF
+
+// Platform type sizes
 #cmakedefine ZORBA_SIZEOF_DOUBLE        @ZORBA_SIZEOF_DOUBLE@
 #cmakedefine ZORBA_SIZEOF_FLOAT         @ZORBA_SIZEOF_FLOAT@
 #cmakedefine ZORBA_SIZEOF_INT           @ZORBA_SIZEOF_INT@
@@ -120,27 +127,15 @@ typedef __int64 int64_t;
 
 // C++11 types
 #cmakedefine ZORBA_HAVE_ENABLE_IF
+#cmakedefine ZORBA_HAVE_IS_SAME
+#cmakedefine ZORBA_HAVE_UNIQUE_PTR
 #cmakedefine ZORBA_HAVE_UNORDERED_MAP
 #cmakedefine ZORBA_HAVE_UNORDERED_SET
-#cmakedefine ZORBA_HAVE_UNIQUE_PTR
 
 ////////// C++ tr1 include directory & namespace //////////////////////////////
 
-#if defined( __GNUC__ ) && (__GNUC__ * 100 + __GNUC_MINOR__ < 430) && !defined(EMSCRIPTEN)
-# define ZORBA_GCC_OLDER_THAN_430 1
-#endif
-
-#if defined( _MSC_VER ) && (_MSC_VER < 1600 /* 2010 */)
-# define ZORBA_MSC_OLDER_THAN_2010 1
-#endif
-
-#if defined( ZORBA_GCC_OLDER_THAN_430 )
-# define ZORBA_TR1_IN_TR1_SUBDIRECTORY 1
-#endif
-
-#if defined( ZORBA_GCC_OLDER_THAN_430 ) || defined( ZORBA_MSC_OLDER_THAN_2010 )
-# define ZORBA_TR1_NS_IS_STD_TR1 1
-#endif
+#cmakedefine ZORBA_TR1_IN_TR1_SUBDIRECTORY
+#cmakedefine ZORBA_TR1_NS_IS_STD_TR1
 
 #ifdef ZORBA_TR1_NS_IS_STD_TR1
 # define ZORBA_TR1_NS std::tr1
@@ -159,6 +154,8 @@ typedef __int64 int64_t;
 #endif
 
 ////////// Zorba //////////////////////////////////////////////////////////////
+
+#cmakedefine ZORBA_STORE_NAME "zorba_${ZORBA_STORE_NAME}"
 
 // Version
 #define ZORBA_VERSION "${ZORBA_VERSION}"
@@ -179,7 +176,6 @@ typedef __int64 int64_t;
 #cmakedefine ZORBA_WITH_BIG_INTEGER
 #cmakedefine ZORBA_WITH_DEBUGGER
 #cmakedefine ZORBA_WITH_FILE_ACCESS
-#cmakedefine ZORBA_WITH_JSON
 #cmakedefine ZORBA_WITH_LIBXML2_SAX
 
 // Zorba parser configuration
@@ -187,8 +183,6 @@ typedef __int64 int64_t;
 #cmakedefine ZORBA_DEBUG_STRING 
 
 // Zorba runtime configuration parameters
-#define ZORBA_BATCHING_TYPE         ${ZORBA_BATCHING_TYPE}
-#define ZORBA_BATCHING_BATCHSIZE    ${ZORBA_BATCHING_BATCHSIZE}
 #define ZORBA_FLOAT_POINT_PRECISION ${ZORBA_FLOAT_POINT_PRECISION}
 
 // Zorba threading mechanism
@@ -232,3 +226,4 @@ typedef __int64 int64_t;
 #endif /* BUILDING_ZORBA_STATIC */
 
 #endif /* ZORBA_CONFIG_H */
+/* vim:set et sw=2 ts=2: */

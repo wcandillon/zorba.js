@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,35 @@
 #ifndef ZORBA_ITEM_SEQUENCE_API_H
 #define ZORBA_ITEM_SEQUENCE_API_H
 
-#include <zorba/config.h>
 #include <zorba/api_shared_types.h>
 
-namespace zorba { 
+namespace zorba
+{ 
 
-  /** 
-   * \brief This interface represents an instance of the XQuery 1.0 and XPath 2.0
-   * Data Model (XDM).
-   *
-   * See http://www.w3.org/TR/xpath-datamodel/.
+/** 
+ * \brief ItemSequence represents an ordered sequence of items. The sequence
+ * may contain any mix of atomic items, function items, nodes, JSON objects,
+ * or JSON arrays.
+ */
+class ZORBA_DLL_PUBLIC ItemSequence : virtual public SmartObject
+{
+ public:
+  /**
+   * \brief Destructor
    */
-  class ZORBA_DLL_PUBLIC ItemSequence : virtual public SmartObject
-  {
-    public:
-      /**
-       * \brief Destructor
-       */
-      virtual ~ItemSequence() { }
+  virtual ~ItemSequence() { }
 
-      /**
-       * \brief get the Iterator over the items
-       *
-       * @return an iterator over the items
-       * @throw Throws zerr::ZAPI0039 if the implementation of the associated
-       *        ItemSequence does not allow more than one iterator to be created. 
-      */
-      virtual Iterator_t  getIterator() = 0;
+  /**
+   * \brief Create an iterator over the items of this sequence. The life time
+   * of the iterator shouldnot exceed the life time of this item sequence.
+   *
+   * @return an iterator over the items
+   * @throw Throws zerr::ZAPI0039 if the implementation of the associated
+   *        ItemSequence does not allow more than one iterator to be created. 
+   */
+  virtual Iterator_t getIterator() = 0;
 
-  }; /* class ItemSequence */
+}; /* class ItemSequence */
 
 } // namespace zorba
 #endif

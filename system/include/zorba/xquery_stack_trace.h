@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,13 +44,13 @@ public:
   public:
     Entry( fn_name_type const &fn_name, fn_arity_type fn_arity,
            char const *file_name, line_type line, column_type column,
-           line_type line_end, column_type column_end);
+           line_type line_end, column_type column_end );
 
     fn_name_type const& getFnName() const {
       return fn_name_;
     }
 
-    fn_arity_type const& getFnArity() const {
+    fn_arity_type getFnArity() const {
       return fn_arity_;
     }
 
@@ -74,7 +74,7 @@ public:
       return col_end_;
     }
 
-    fn_name_type& getFnNameRef()  {
+    fn_name_type& getFnNameRef() {
       return fn_name_;
     }
 

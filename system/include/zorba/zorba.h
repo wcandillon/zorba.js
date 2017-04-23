@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include <zorba/diagnostic_handler.h>
 #include <zorba/item.h>
 #include <zorba/item_factory.h>
+#include <zorba/jsondatamanager.h>
 #include <zorba/options.h>
 #include <zorba/static_context.h>
 #include <zorba/version.h>
@@ -34,7 +35,7 @@
 #include <zorba/xquery.h>
 #include <zorba/zorba_string.h>
 #include <zorba/iterator.h>
-#include <zorba/properties_base.h>
+#include <zorba/properties.h>
 
 namespace zorba {
 
@@ -43,9 +44,9 @@ namespace zorba {
  * There exists one instance of the Zorba class per process.
  * It can be used to (1) create and compile queries,
  * (2) create static contexts,
- * (3) provides access to the XmlDataManager,
+ * (3) provides access to the XmlDataManager and JsonDataManager,
  * (4) provides access to the ItemFactory, and
- * (5) provides access to the PropertiesGlobal.
+ * (5) provides access to the Properties.
  */
 class ZORBA_DLL_PUBLIC Zorba
 {
@@ -285,25 +286,30 @@ class ZORBA_DLL_PUBLIC Zorba
 
   /** \brief Creates a new StaticContext.
    *
-   * The method returns a StaticContext object that can be used
-   * for compiling a query. Instances of the StaticContext class are
-   * returned as a smart pointer.
-   * That is, objects of type StaticContext_t are reference counted object
-   * to an dynamically allocated StaticContext object. Hence, each object can h
-   * have multiple owners. The object is deleted if nobody holds on to an StaticContext_t
-   * object anymore.
+   * The method returns a smart pointer to a new StaticContext object that can
+   * be used for compiling a query.
    *
-   * Optionally, this method takes an DiagnosticHandler as parameter. In the case
-   * an DiagnosticHandler is passed as parameter, each error that occurs during
-   * setting or getting information out of the StaticContext, is reported to the passed
-   * DiagnosticHandler.
-   * If not DiagnosticHandler is given, exceptions are thrown for each of these errors.
-   *
-   * @param aDiagnosticHandler the DiagnosticHandler to which errors should be reported.
-   * @return StaticContext_t a new StaticContext object.
+   * @param aDiagnosticHandler the DiagnosticHandler to which errors should be
+   *        reported. If not DiagnosticHandler is given, exceptions are thrown
+   *        for each of these errors.
+   * @return StaticContext_t a smart pointer to a new StaticContext object.
    */
   virtual StaticContext_t
   createStaticContext(DiagnosticHandler* aDiagnosticHandler = 0) = 0;
+
+  /** \brief Returns an XmlDataManager object.
+   *
+   * @return XmlDataManager an XmlDataManager.
+   */
+  virtual XmlDataManager_t
+  getXmlDataManager() = 0;
+
+  /** \brief Returns a JsonDataManager object.
+   *
+   * @return JsonDataManager a JsonDataManager.
+   */
+  virtual JsonDataManager_t
+  getJsonDataManager() = 0;
 
   /** \brief Gets the singleton instance of the ItemFactory.
    *
@@ -311,13 +317,6 @@ class ZORBA_DLL_PUBLIC Zorba
    */
   virtual ItemFactory*
   getItemFactory() = 0;
-
-  /** \brief Gets the singleton instance of the XmlDataManager object.
-   *
-   * @return XmlDataManager the singleton instance of the XmlDataManager.
-   */
-  virtual XmlDataManager*
-  getXmlDataManager() = 0;
 
   /** \brief Gets the singleton instance of Zorba's audit provider object.
    *
@@ -328,9 +327,18 @@ class ZORBA_DLL_PUBLIC Zorba
 
   /** \brief Gets the singleton instance of Zorba's properties object.
    *
-   * @return zorba::Properties the singleton instance of Zorba's properties object.
+   * @return zorba::Properties the singleton instance of Zorba's properties
+   * object.
+   * @deprecated Use Properties::instance() instead.
    */
-  virtual PropertiesGlobal* getPropertiesGlobal() = 0;
+  virtual Properties* getProperties() = 0;
+
+  /**
+   * @deprecated Use Properties::instance() instead.
+   */
+  Properties* getPropertiesGlobal() {
+    return getProperties();
+  }
 
 }; /* class Zorba */
 

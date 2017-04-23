@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,9 @@ typedef enum { preserve_cons, strip_cons } construction_mode_t;
 /** \brief The XQuery version, taken from the version declaration, an XQuery 3.0 feature.
  */
 typedef enum { xquery_version_1_0 = 100, xquery_version_3_0 = 300 } xquery_version_t;
+
+/** \brief The JSONiq version */
+typedef enum { jsoniq_version_undefined = 0, jsoniq_version_1_0 = 100 } jsoniq_version_t;
 
 /** \brief Revalidation mode as defined in
  *         http://www.w3.org/TR/xquery-update-10/#id-revalidation-declaration

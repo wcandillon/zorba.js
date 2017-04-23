@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 
 #include <zorba/config.h>
 
+#include "cxx_util.h"
 #include "type_traits.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -72,7 +73,7 @@ public:
  */
 #define ZORBA_DECL_HAS_MEM_FN(FN_NAME)                                \
   template<typename T,typename S>                                     \
-  class has_##FN_NAME : public sfinae_base {                          \
+  class has_##FN_NAME : public ::zorba::internal::ztd::sfinae_base {  \
     template<typename SignatureType,SignatureType> struct type_check; \
     template<class U> static yes& test(type_check<S,&U::FN_NAME>*);   \
     template<class U> static no& test(...);                           \
@@ -91,8 +92,9 @@ namespace has_insertion_operator_impl {
   typedef char yes[2];
 
   /**
-   * This dummy class is used to make the matching of the dummy operator<<()
-   * \e worse than the global \c operator<<(), if any.
+   * This dummy class is used to make the matching of the dummy
+   * \c operator&lt;&lt;() \e worse than the global \c operator&lt;&lt;(),
+   * if any.
    */
   struct any_t {
     template<typename T> any_t( T const& );
@@ -100,23 +102,24 @@ namespace has_insertion_operator_impl {
 
   /**
    * This dummy operator is matched only when there is \e no global
-   * operator<<() otherwise declared for type \c T.
+   * \c operator&lt;&lt;() otherwise declared for type \c T.
    *
    * @return Returns a \c no that selects defined(no).
    */
   no operator<<( std::ostream const&, any_t const& );
 
   /**
-   * This function is matched only when there \e is a global \c operator<<()
-   * declared for type \c T because \c operator<<()'s return type is
-   * \c std::ostream&.
+   * This function is matched only when there \e is a global
+   * \c operator&lt;&lt;() declared for type \c T because
+   * \c operator&lt;&lt;()'s return type is \c std::ostream&.
    *
    * @return Returns a yes& whose \c sizeof() equals \c sizeof(yes).
    */
   yes& defined( std::ostream& );
 
   /**
-   * This function is matched only when the dummy \c operator<<() is matched.
+   * This function is matched only when the dummy \c operator&lt;&lt;() is
+   * matched.
    *
    * @return Returns a no whose \c sizeof() equals \c sizeof(no).
    */
@@ -124,8 +127,10 @@ namespace has_insertion_operator_impl {
 
   /**
    * The implementation class that can be used to determine whether a given
-   * type \c T has a global <code>std::ostream& operator<<(std::ostream&,T
-   * const&)</code> defined for it.  However, do not use this class directly.
+   * type \c T has a global
+   * <code>std::ostream& operator&lt;&lt;(std::ostream&,T const&)</code>
+   * defined for it.
+   * However, do not use this class directly.
    *
    * @tparam T The type to check.
    */
@@ -135,8 +140,8 @@ namespace has_insertion_operator_impl {
     static T const &t;
   public:
     /**
-     * This is \c true only when the type \c T has a global \c operator<<()
-     * declared for it.
+     * This is \c true only when the type \c T has a global
+     * \c operator&lt;&lt;() declared for it.
      * \hideinitializer
      */
     static bool const value = sizeof( defined( s << t ) ) == sizeof( yes );
@@ -146,8 +151,8 @@ namespace has_insertion_operator_impl {
 /**
  * \internal
  * A class that can be used to determine whether a given type \c T has a global
- * <code>std::ostream& operator<<(std::ostream&,T const&)</code> defined for
- * it.
+ * <code>std::ostream& operator&lt;&lt;(std::ostream&,T const&)</code> defined
+ * for it.
  * For example:
  * \code
  * template<typename T> inline
@@ -165,13 +170,73 @@ struct has_insertion_operator :
 {
 };
 
+////////// alignment ///////////////////////////////////////////////////////////
+
+// See: http://stackoverflow.com/a/6959582/99089
+
+namespace align_impl {
+
+template<typename T,bool smaller>
+struct align_type_impl;
+
+template<typename T>
+struct align_type_impl<T,false> {
+  typedef T type;
+};
+
+template<typename T>
+struct align_type_impl<T,true> {
+  typedef char type;
+};
+
+template<typename T,typename U>
+struct align_type {
+  typedef typename align_type_impl<U,(sizeof(T) < sizeof(U))>::type type;
+};
+
+} // namespace align_impl
+
+/**
+ * An %aligner can be used inside a \c union to align it properly for type
+ * \c T.
+ *
+ * @tparam T The type to align properly.
+ */
+template<typename T>
+union aligner {
+  typename align_impl::align_type<T,char>::type c;
+  typename align_impl::align_type<T,short>::type s;
+  typename align_impl::align_type<T,int>::type i;
+  typename align_impl::align_type<T,long>::type l;
+  typename align_impl::align_type<T,long long>::type ll;
+  typename align_impl::align_type<T,float>::type f;
+  typename align_impl::align_type<T,double>::type d;
+  typename align_impl::align_type<T,long double>::type ld;
+  typename align_impl::align_type<T,void*>::type p;
+  typename align_impl::align_type<T,void (*)()>::type pf;
+  typename align_impl::align_type<T,aligner*>::type ps;
+  typename align_impl::align_type<T,void (aligner::*)()>::type pmf;
+};
+
+/**
+ * A %raw_buf is a properly aligned chunk of raw memory for an object of type
+ * \c T.
+ *
+ * @tparam T The type to hold an object of.
+ */
+template<typename T>
+union raw_buf {
+  aligner<T> dummy_for_alignment;
+  char buf[ sizeof(T) ];
+};
+
 ////////// c_str() /////////////////////////////////////////////////////////////
 
 /**
  * \internal
  * Gets the \c char* to the given string.
  * 
- * @tparam OutputStringType The string's type.
+ * @tparam StringType The string's type.
  * @param s The string to get the \c char* of.
  * @return Returns said \c char*.
  */
@@ -210,7 +275,8 @@ struct destroy_delete {
   template<typename U>
   destroy_delete( destroy_delete<U> const&,
     typename
-      std::enable_if<ZORBA_TR1_NS::is_convertible<U*,T*>::value>::type* = 0 )
+      std::enable_if<ZORBA_TR1_NS::is_convertible<U*,T*>::value>::type*
+        = nullptr )
   {
   }
 
@@ -260,16 +326,53 @@ ZORBA_DECL_HAS_MEM_FN( toString );
 
 /**
  * \internal
+ * Short-hand macro for use with enable_if to determine whether the given type
+ * has a member function with the signature
+ * <code>char const* (T::*)() const</code>.
+ * \hideinitializer
+ */
+#define ZORBA_HAS_C_STR(T) \
+  ::zorba::internal::ztd::has_c_str<T,char const* (T::*)() const>::value
+
+/**
+ * \internal
+ * Short-hand macro for use with enable_if to determine whether the given type
+ * is a class having an API matching std::string.
+ * \hideinitializer
+ */
+#define ZORBA_IS_STRING(T) ZORBA_HAS_C_STR(T)
+
+/**
+ * \internal
+ * Tests whether a given type \a T is a C string type.
+ *
+ * @tparam T The type to check.
+ */
+template<typename T>
+class is_c_string {
+  typedef typename ZORBA_TR1_NS::remove_pointer<T>::type T_base;
+  typedef typename ZORBA_TR1_NS::add_const<T_base>::type T_base_const;
+public:
+  static bool const value =
+       ZORBA_TR1_NS::is_same<T_base_const*,char const*>::value
+    || ZORBA_TR1_NS::is_same<T_base_const*,unsigned char const*>::value
+    || ZORBA_TR1_NS::is_same<T_base_const*,signed char const*>::value;
+};
+
+/**
+ * \internal
  * Converts an object to its string representation.
  *
  * @tparam T The object type that:
+ *  - is not an array
  *  - is not a pointer
  *  - has an <code>ostream& operator&lt;&lt;(ostream&,T const&)</code> defined
  * @param t The object.
  * @return Returns a string representation of the object.
  */
 template<typename T> inline
-typename std::enable_if<!ZORBA_TR1_NS::is_pointer<T>::value
+typename std::enable_if<!ZORBA_TR1_NS::is_array<T>::value
+                     && !ZORBA_TR1_NS::is_pointer<T>::value
                      && has_insertion_operator<T>::value,
                         std::string>::type
 to_string( T const &t ) {
@@ -291,7 +394,7 @@ to_string( T const &t ) {
  */
 template<class T> inline
 typename std::enable_if<!has_insertion_operator<T>::value
-                     && has_c_str<T,char const* (T::*)() const>::value,
+                     && ZORBA_HAS_C_STR(T),
                         std::string>::type
 to_string( T const &t ) {
   return t.c_str();
@@ -312,7 +415,7 @@ to_string( T const &t ) {
  */
 template<class T> inline
 typename std::enable_if<!has_insertion_operator<T>::value
-                     && !has_c_str<T,char const* (T::*)() const>::value
+                     && !ZORBA_HAS_C_STR(T)
                      && has_str<T,std::string (T::*)() const>::value
                      && !has_toString<T,std::string (T::*)() const>::value,
                         std::string>::type
@@ -335,7 +438,7 @@ to_string( T const &t ) {
  */
 template<class T> inline
 typename std::enable_if<!has_insertion_operator<T>::value
-                     && !has_c_str<T,char const* (T::*)() const>::value
+                     && !ZORBA_HAS_C_STR(T)
                      && !has_str<T,std::string (T::*)() const>::value
                      && has_toString<T,std::string (T::*)() const>::value,
                         std::string>::type
@@ -345,7 +448,7 @@ to_string( T const &t ) {
 
 /**
  * \internal
- * Specialization of \c to_string() for pointer types.
+ * Specialization of \c to_string() for pointer types other than C strings.
  *
  * @tparam T The pointer type.
  * @param p The pointer.
@@ -353,10 +456,13 @@ to_string( T const &t ) {
  * otherwise returns \c "<null>".
  */
 template<typename T> inline
-typename std::enable_if<ZORBA_TR1_NS::is_pointer<T>::value,std::string>::type
+typename std::enable_if<ZORBA_TR1_NS::is_pointer<T>::value
+                     && !is_c_string<T>::value,
+                        std::string>::type
 to_string( T p ) {
-  typedef typename ZORBA_TR1_NS::remove_pointer<T>::type const* T_const_ptr;
-  return p ? to_string( *static_cast<T_const_ptr>( p ) ) : "<null>";
+  typedef typename ZORBA_TR1_NS::remove_pointer<T>::type T_base;
+  typedef typename ZORBA_TR1_NS::add_const<T_base>::type T_base_const;
+  return p ? to_string( *static_cast<T_base_const*>( p ) ) : "<null>";
 }
 
 /**
@@ -368,6 +474,17 @@ to_string( T p ) {
  */
 inline std::string to_string( char const *s ) {
   return s ? s : "<null>";
+}
+
+/**
+ * \internal
+ * Specialization of \c to_string() for C strings.
+ *
+ * @param s The C string.
+ * @return Returns a string representation of the object.
+ */
+inline std::string to_string( unsigned char const *s ) {
+  return s ? reinterpret_cast<char const*>( s ) : "<null>";
 }
 
 ////////// misc ///////////////////////////////////////////////////////////////

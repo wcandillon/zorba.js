@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -210,7 +210,7 @@ class ZORBA_DLL_PUBLIC Collection : public SmartObject
    *
    * @see isStatic()
    */
-  virtual TypeIdentifier_t
+  virtual SequenceType
   getType() const = 0;
 
   /** \brief Register a DiagnosticHandler to which errors

@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2009 The FLWOR Foundation.
+ * Copyright 2006-2009 2006-2016 zorba.io.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,11 @@ namespace zorba {
 
       static Serializer_t
       createSerializer(ItemSequence* options);
+
+      virtual void
+      serialize(
+        Iterator_t object,
+        std::ostream& stream) const = 0;
 
   };
 

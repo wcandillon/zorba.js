@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2011 The FLWOR Foundation.
+ * Copyright 2006-2011 2006-2016 zorba.io.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@
 
 #include <zorba/config.h>
 #include <zorba/api_shared_types.h>
-#include <zorba/item.h>
-#include <zorba/zorba_string.h>
-#include <zorba/streams.h>
-#include <zorba/locale.h>
 #include <zorba/internal/unique_ptr.h>
 #include <zorba/internal/ztd.h>
+#include <zorba/item.h>
+#include <zorba/streams.h>
+#include <zorba/util/locale.h>
+#include <zorba/zorba_string.h>
 
 /**
  * @file uri_resolvers.h

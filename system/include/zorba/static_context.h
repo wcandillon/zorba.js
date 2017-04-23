@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,17 +16,17 @@
 #ifndef XQP_STATIC_CONTEXT_API_H
 #define XQP_STATIC_CONTEXT_API_H
 
+#include <vector>
+
 #include <zorba/config.h>
 #include <zorba/api_shared_types.h>
 #include <zorba/zorba_string.h>
 #include <zorba/typeident.h>
 #include <zorba/static_context_consts.h>
 #include <zorba/options.h>  // for compiler hints class
-#include <vector>
 #include <zorba/function.h>
 #include <zorba/annotation.h>
-#include <zorba/smart_ptr.h>
-#include <zorba/smart_ptr.h>
+#include <zorba/util/smart_ptr.h>
 #ifndef ZORBA_NO_FULL_TEXT
 #include <zorba/thesaurus.h>
 #endif /* ZORBA_NO_FULL_TEXT */
@@ -36,21 +36,22 @@
 
 namespace zorba {
 
-  /** \brief Instances of the class StaticContext contain the information that is available
-   *         at the time the query is compiled.
-   *
-   * This class contains the information that is defined in the %XQuery specification
-   * (see http://www.w3.org/TR/xquery/#static_context).
-   *
-   * A StaticContext can be created by calling Zorba::createStaticContext and then be passed
-   * to the Zorba::compileQuery or XQuery::compile functions.
-   * If no static context has been passed to any of these functions, a default static context
-   * is used. It can be accessed by calling XQuery::getStaticContext on a compiled XQuery object.
-   *
-   * Note: This class is reference counted. When writing multi-threaded clients,
-   * it is the responibility of the client code to synchronize assignments to the
-   * SmartPtr holding this object.
-   */
+/** \brief Instances of the class StaticContext contain the information that is
+ *         available at the time the query is compiled and run.
+ *
+ * This class contains the information that is defined in the %XQuery specification
+ * (see http://www.w3.org/TR/xquery/#static_context).
+ *
+ * A StaticContext can be created by calling Zorba::createStaticContext and then
+ * be passed to the Zorba::compileQuery or XQuery::compile functions. If no
+ * static context has been passed to any of these functions, a default static
+ * context is used. It can be accessed by calling XQuery::getStaticContext on
+ * a compiled XQuery object.
+ *
+ * Note: This class is reference counted. When writing multi-threaded clients,
+ * it is the responibility of the client code to synchronize assignments to the
+ * SmartPtr holding this object.
+ */
 class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
 {
  public:
@@ -160,12 +161,12 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
   /** \brief Adds a collation URI.
    *
    * The URI specifies the locale and collation strength of the collation that is added.
-   * A valid collation URI must begin with %http://www.zorba-xquery.com/collations/.
+   * A valid collation URI must begin with %http://zorba.io/collations/.
    * This prefix is followed by a collation strength (i.e. PRIMARY, SECONDARY, TERTIARY,
    * QUATTERNARY, or IDENTICAL) followed by a '/'.
    * After the strength a lower-case two- or three-letter ISO-639 language code must follow.
    * The URI may end with an upper-case two-letter ISO-3166.
-   * For example, %http://www.zorba-xquery.com/collations/PRIMARY/en/US
+   * For example, %http://zorba.io/collations/PRIMARY/en/US
    * specifies an english language with US begin the country..
    *
    * Internally, ICU is used for comparing strings. For detailed description see
@@ -205,6 +206,15 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
   virtual bool
   setXQueryVersion( xquery_version_t aMode ) = 0;
 
+  /** \brief Set the JSONiq processing mode
+   *
+   *
+   * @param aMode the JSONiq version
+   * @return true if the version was set, false otherwise.
+   */
+  virtual bool
+  setJSONiqVersion( jsoniq_version_t aMode ) = 0;
+
   /** \brief Get the XQuery processing mode (version 1.0 or 3.0).
    *
    *
@@ -212,6 +222,14 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
    */
   virtual xquery_version_t
   getXQueryVersion( ) const = 0;
+
+  /** \brief Get the JSONiq processing mode.
+   *
+   *
+   * @return jsoniq_version_t the JSONiq version processing mode.
+   */
+  virtual jsoniq_version_t
+  getJSONiqVersion( ) const = 0;
 
   /** \brief Set the XPath 1.0 compatibility mode.
    *         (see http://www.w3.org/TR/xquery/#static_context)
@@ -382,21 +400,21 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
   /** \brief Set the type of a statically known document
    */
   virtual void
-  setDocumentType(const String& aDocUri, TypeIdentifier_t type) = 0;
+  setDocumentType(const String& aDocUri, const SequenceType& type) = 0;
   
   /** \brief Get the type of a statically known document
    */
-  virtual TypeIdentifier_t
+  virtual SequenceType
   getDocumentType(const String& aDocUri) const = 0;
   
   /** \brief Set the type of a statically known collection
    */
   virtual void
-  setCollectionType(const String& aCollectionUri, TypeIdentifier_t type) = 0;
+  setCollectionType(const String& aCollectionUri, const SequenceType& type) = 0;
 
   /** \brief Get the type of a statically known collection
    */
-  virtual TypeIdentifier_t
+  virtual SequenceType
   getCollectionType(const String& aCollectionUri) const = 0;
 
   /** \brief Check if a function with the given name and arity are registered in the context.
@@ -439,11 +457,11 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
   /** \brief Set the type of the context item.
    */
   virtual void
-  setContextItemStaticType(TypeIdentifier_t type) = 0;
+  setContextItemStaticType(const SequenceType& type) = 0;
 
   /** \brief Fetch the type of the context item.
    */
-  virtual TypeIdentifier_t
+  virtual SequenceType
   getContextItemStaticType() const = 0;
 
   /** \brief Set the output stream that is used by the fn:trace function
@@ -631,7 +649,37 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
    * @throw ZorbaException if an error occured.
    */
   virtual void
-	getExternalVariables(Iterator_t& aVarsIter) const = 0;
+  getExternalVariables(Iterator_t& aVarsIter) const = 0;
+
+  /** \brief Gets the Annotations (if any) for the given external variable.
+   *
+   * @param var_name The QName of the variable.
+   * @param result The vector into which to put all of the variable's
+   * annotations.
+   * @return Returns \c true only if the given external variable exists and has
+   * at least one annotation.
+   */
+  virtual bool
+  getExternalVariableAnnotations( Item const &var_name,
+                                  std::vector<Annotation_t> &result ) const = 0;
+
+  /** \brief Gets the given external variable Kind
+   *
+   * @param var_name The QName of the variable.
+   * @return Returns \c true only if the given external variable exists.
+   */
+  virtual bool
+  getExternalVariableKind(Item const & var_name,
+      SequenceType::Kind& result) const = 0;
+
+  /** \brief Gets the given external variable quantifier.
+   *
+   * @param var_name The QName of the variable.
+   * @return Returns \c true only if the given external variable exists.
+   */
+  virtual bool
+  getExternalVariableQuantifier(Item const & var_name,
+      SequenceType::Quantifier& result) const = 0;
 
   /**
    * @brief Set the URI lookup path (list of filesystem directories) for this
@@ -786,6 +834,16 @@ class ZORBA_DLL_PUBLIC StaticContext : public SmartObject
   virtual void
   clearBaseURI() = 0;
 
+  /** \brief Sets a list of default function namespaces that will be
+   *   used in order during the lookup of functions.
+   *
+   * @param aURIs the list of default function namespaces.
+   * @return true if the said namespaces have been set, false otherwise
+   *         if an DiagnosticHandler has been registered.
+   * @throw ZorbaException if an error occured.
+   */
+  virtual bool
+  setDefaultFunctionNamespaces( const std::vector<String>& aURIs ) = 0;
 };
 
 } /* namespace zorba */

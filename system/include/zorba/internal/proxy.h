@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,8 @@ namespace ztd {
 /**
  * \internal
  * A %proxy<T> is-a \c T that also contains a T* -- a pointer to the original.
+ *
+ * @tparam OriginalType The original type to which this %proxy refers.
  */
 template<class OriginalType>
 class proxy : public OriginalType {
