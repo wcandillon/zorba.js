@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,27 @@
 #pragma once
 #ifndef ZORBA_UTIL_TIME_H
 #define ZORBA_UTIL_TIME_H
+
+#include <zorba/config.h>
+
+#if defined(ZORBA_HAVE_CLOCKGETTIME) && defined(_POSIX_CPUTIME)
+#include <time.h>
+#elif defined(ZORBA_HAVE_GETRUSAGE)
+#include <sys/time.h>
+#include <sys/resource.h>
+#else /* no rusage, no clock_gettime */
+#include <time.h>
+#endif /* ZORBA_HAVE_CLOCKGETTIME */
+
+#if defined(ZORBA_HAVE_CLOCKGETTIME)
+#include <time.h>
+#elif defined(WIN32)
+#include <sys/timeb.h>
+#else /* not Windows, and no clock_gettime() */
+#include <time.h>
+#include <sys/time.h>
+#endif /* ZORBA_HAVE_CLOCKGETTIME */
+
 
 /**
  * This header includes utility functions for certain timing-related
@@ -47,174 +68,152 @@
  * zorbacmd and the implementation of fn:doc(), so it's not too bad.
  */
 
-namespace zorba 
-{
+namespace zorba {
+namespace time {
 
-  namespace time
-  {
+///////////////////////////////////////////////////////////////////////////////
 
-    //
-    //
-    // Types and functions for CPU time
-    //
-    //
+// Large enough to hold number of milliseconds since epoch.
+#if ZORBA_SIZEOF_LONG <= 4
+typedef long long msec_type;
+#else
+typedef long msec_type;
+#endif /* ZORBA_SIZEOF_LONG */
 
-#if (defined(ZORBA_HAVE_CLOCKGETTIME_FUNCTION) & defined(_POSIX_CPUTIME))
+//
+//
+// Types and functions for CPU time
+//
+//
 
-#include <time.h>
+#if defined(ZORBA_HAVE_CLOCKGETTIME) && defined(_POSIX_CPUTIME)
 
-    typedef struct timespec cputime;
+typedef struct timespec cputime;
 
-    inline double get_cputime_elapsed (const cputime& t0, const cputime& t1)
-    {
-      return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
-        ((t1.tv_nsec - t0.tv_nsec) / 1000000.0);
-    }
+inline double get_cputime_elapsed( cputime const &t0, cputime const &t1 ) {
+  return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
+    ((t1.tv_nsec - t0.tv_nsec) / 1000000.0);
+}
 
-    inline void get_current_cputime (cputime& t)
-    {
-      clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t);
-    }
+inline void get_current_cputime( cputime &t ) {
+  clock_gettime( CLOCK_PROCESS_CPUTIME_ID, &t );
+}
 
-#elif defined(ZORBA_HAVE_RUSAGE_FUNCTION)
+#elif defined(ZORBA_HAVE_GETRUSAGE)
 
-#include <sys/time.h>
-#include <sys/resource.h>
+typedef struct timeval cputime;
 
-    typedef struct timeval cputime;
+inline double get_cputime_elapsed( cputime const &t0, cputime const &t1 ) {
+  return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
+    ((t1.tv_usec - t0.tv_usec) / 1000.0);
+}
 
-    inline double get_cputime_elapsed (const cputime& t0, const cputime& t1) 
-    {
-      return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
-        ((t1.tv_usec - t0.tv_usec) / 1000.0);
-    }
-
-    inline void get_current_cputime (cputime& t) 
-    {
-      struct rusage ru;
-      getrusage (RUSAGE_SELF, &ru);
-      t = ru.ru_utime;
-    }
+inline void get_current_cputime( cputime &t ) {
+  struct rusage ru;
+  getrusage( RUSAGE_SELF, &ru );
+  t = ru.ru_utime;
+}
 
 #else /* no rusage, no clock_gettime */
 
-#include <time.h>
+typedef clock_t cputime;
 
-    typedef clock_t cputime;
+inline double get_cputime_elapsed( cputime const &t0, cputime const &t1 ) {
+  return (double)(t1 - t0) / (CLOCKS_PER_SEC / 1000);
+}
 
-    inline double get_cputime_elapsed (const cputime& t0, const cputime& t1) 
-    {
-      return (double) (t1 - t0) / (CLOCKS_PER_SEC / 1000);
-    }
+inline void get_current_cputime( cputime &t ) {
+  t = clock();
+}
 
-    inline void get_current_cputime (cputime& t)
-    {
-      t = clock ();
-    }
+#endif /* ZORBA_HAVE_CLOCKGETTIME */
 
-#endif /* ZORBA_HAVE_CLOCKGETTIME_FUNCTION */
+///////////////////////////////////////////////////////////////////////////////
 
+//
+//
+// Types and functions for wall-clock time
+//
+//
 
-    //
-    //
-    // Types and functions for wall-clock time
-    //
-    //
+#if defined(ZORBA_HAVE_CLOCKGETTIME)
 
-#if defined(ZORBA_HAVE_CLOCKGETTIME_FUNCTION)
+typedef struct timespec walltime;
 
-#include <time.h>
+inline double get_walltime_elapsed( walltime const &t0, walltime const &t1 ) {
+  return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
+    ((t1.tv_nsec - t0.tv_nsec) / 1000000.0);
+}
 
-    typedef struct timespec walltime;
-
-    inline double get_walltime_elapsed (const walltime& t0, const walltime& t1)
-    {
-      return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
-        ((t1.tv_nsec - t0.tv_nsec) / 1000000.0);
-    }
-
-    inline void get_current_walltime (walltime& t)
-    {
+inline void get_current_walltime( walltime &t ) {
 #ifdef _POSIX_MONOTONIC_CLOCK
-      clock_gettime(CLOCK_MONOTONIC, &t);
+  clock_gettime( CLOCK_MONOTONIC, &t );
 #else
-      clock_gettime(CLOCK_REALTIME, &t);
-#endif
-    }
+  clock_gettime( CLOCK_REALTIME, &t );
+#endif /* _POSIX_MONOTONIC_CLOCK */
+}
 
-    inline long get_walltime_in_millis(const walltime& t)
-    {
-      return t.tv_sec * 1000 + t.tv_nsec / 1000000;
-    }
+inline msec_type get_walltime_in_millis( walltime const &t ) {
+  return t.tv_sec * (msec_type)1000 + t.tv_nsec / 1000000;
+}
 
 #elif defined(WIN32)
 
-    // TODO: Should maybe use QueryPerformanceCounter() or
-    // GetSystemTimeAsFileTime() for this, rather than ftime(), but I
-    // don't know enough about any of these alternatives to choose
-    // one. See http://msdn.microsoft.com/en-us/magazine/cc163996.aspx .
-
-#include <sys/timeb.h>
+// TODO: Should maybe use QueryPerformanceCounter() or
+// GetSystemTimeAsFileTime() for this, rather than ftime(), but I
+// don't know enough about any of these alternatives to choose
+// one. See http://msdn.microsoft.com/en-us/magazine/cc163996.aspx .
 
 #ifdef WINCE
-    typedef struct timeb walltime;
+typedef struct timeb walltime;
 #else
-    typedef struct _timeb walltime;
-#endif
+typedef struct _timeb walltime;
+#endif /* WINCE */
 
-    inline double get_walltime_elapsed (const walltime& t0, const walltime& t1) 
-    {
-      return ((t1.time - t0.time) * 1000.0) + (t1.millitm - t0.millitm);
-    }
+inline double get_walltime_elapsed(walltime const &t0, walltime const &t1 ) {
+  return ((t1.time - t0.time) * 1000.0) + (t1.millitm - t0.millitm);
+}
 
-    inline void get_current_walltime (walltime& t) 
-    {
+inline void get_current_walltime( walltime &t ) {
 #ifdef WINCE
-      ftime(&t);
+  ftime( &t );
 #else
-      _ftime_s(&t);
-#endif
-    }
-	
-    inline long get_walltime_in_millis(const walltime& t)
-    {
-      return (long)(t.time * 1000 + t.millitm);
-    }
+  _ftime_s( &t );
+#endif /* WINCE */
+}
+
+inline msec_type get_walltime_in_millis( walltime const &t ) {
+  return t.time * (msec_type)1000 + t.millitm;
+}
 
 #else /* not Windows, and no clock_gettime() */
 
-#include <time.h>
-#include <sys/time.h>
+typedef struct timeval walltime;
 
-    typedef struct timeval walltime;
+inline double get_walltime_elapsed( walltime const &t0, walltime const &t1 ) {
+  return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
+    ((t1.tv_usec - t0.tv_usec) / 1000.0);
+}
 
-    inline double get_walltime_elapsed (const walltime& t0, const walltime& t1) 
-    {
-      return ((t1.tv_sec - t0.tv_sec) * 1000.0) +
-        ((t1.tv_usec - t0.tv_usec) / 1000.0);
-    }
+inline void get_current_walltime( walltime &t ) {
+  gettimeofday( &t, NULL );
+}
 
-    inline void get_current_walltime (walltime& t)
-    {
-      gettimeofday(&t, NULL);
-    }
-	
-    inline long get_walltime_in_millis(const walltime& t)
-    {
-      return t.tv_sec * 1000 + t.tv_usec / 1000;
-    }
+inline msec_type get_walltime_in_millis( walltime const &t ) {
+  return t.tv_sec * (msec_type)1000 + t.tv_usec / 1000;
+}
 
-#endif /* ZORBA_HAVE_CLOCKGETTIME_FUNCTION */
+#endif /* ZORBA_HAVE_CLOCKGETTIME */
 
-  }  // ::time
+///////////////////////////////////////////////////////////////////////////////
 
-}  // ::zorba
+} // namespace time
+} // namespace zorba
 
-#endif
-
+#endif /* ZORBA_UTIL_TIME_H */
 /*
- * Local variables:
- * mode: c++
- * End:
- */
+* Local variables:
+* mode: c++
+* End:
+*/
 /* vim:set et sw=2 ts=2: */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 #define QUERYLOCATION_H
 
 #include <zorba/config.h>
-#include <zorba/smart_ptr.h>
 #include <zorba/api_shared_types.h>
+#include <zorba/util/smart_ptr.h>
 
 namespace zorba{
 

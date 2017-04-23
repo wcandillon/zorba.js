@@ -27,7 +27,7 @@
 using namespace zorba;
 
 int
-runQuery(char* query)
+runQuery(const char* query)
 {
   void* lStore = StoreManager::getStore();
   Zorba *lZorba = Zorba::getInstance(lStore);
@@ -45,5 +45,5 @@ runQuery(char* query)
 int 
 main(int argc, char* argv[])
 {
-  return runQuery("1+1");
+  return runQuery("<henri som1='{5*6}' som2='{1 div 3}'/>");
 }

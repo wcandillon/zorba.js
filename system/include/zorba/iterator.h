@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,38 +16,33 @@
 #ifndef ZORBA_ITERATOR_API_H
 #define ZORBA_ITERATOR_API_H
 
-#include <zorba/config.h>
+// standard
+#include <cassert>
+
+// Zorba
 #include <zorba/api_shared_types.h>
-#include <zorba/item_sequence.h>
+#include <zorba/internal/type_traits.h>
 
 namespace zorba {
 
-/** \brief Interface for an Iterator over an instance of the XML Data Model
- *  (i.e., a sequence of items).
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * \brief Interface for an Iterator over a sequence of items.
  *
  * An iterator can be in one of the following two states: open or not-open.
  * When in open state, only methods isOpen(), next() and close() may be called.
- * When in not-open state, only isOpen and open() may be called. The open()
+ * When in not-open state, only isOpen() and open() may be called. The open()
  * method changes the state from non-open to open, and the close() method
  * changes the state from open to not-open.
- *
- * Iterator is not a thread-safe class, i.e., none of its methods should ever
- * be called by two or more threads in parallel.
- *
- * Note: This class is reference counted. When writing multi-threaded clients,
- * it is the responibility of the client code to synchronize assignments to the
- * SmartPtr holding this object.
  */
 class ZORBA_DLL_PUBLIC Iterator : virtual public SmartObject
 {
  public:
-  /** \brief Destructor
-   */
-  virtual ~Iterator() {}
-
   /** \brief Start iterating.
    *
-   * This function needs to be called before calling next() or close().
+   * This function needs to be called before calling next(), count(), skip() or
+   * close().
    * Its purpose is to create and initialize any resources that may be 
    * needed during the iteration. It should not be called again until
    * after close() has been called.
@@ -59,8 +54,8 @@ class ZORBA_DLL_PUBLIC Iterator : virtual public SmartObject
 
   /** \brief Get the next Item of the sequence.
    *
-   * @param  aItem the next Item of the result sequence, if true is returned
-   *         by the function.
+   * @param  aItem the next Item of the sequence, unless all the items of the
+   *         sequence have been returned already by previous invocations of next().
    * @return false if all the items of the sequence have been returned already
    *         by previous invocations of next(); true otherwise.
    * @throw  ZorbaException if an error occurs, or the Iterator has not been opened.
@@ -80,13 +75,90 @@ class ZORBA_DLL_PUBLIC Iterator : virtual public SmartObject
   close() = 0;
 
   /**
-   * brief Check whether the iterator is open or not
+   * \brief Check whether the iterator is open or not
    */
   virtual bool
   isOpen() const = 0;
+
+  /**
+   * Counts the number of items this iterator would have returned.
+   *
+   * @throw ZorbaException if an error occurs or the iterator has not been
+   * opened.
+   */
+  virtual int64_t
+  count();
+
+  /**
+   * Skips a number of items.
+   *
+   * @param count The number of items to skip.
+   * @return \c true only if there are more items.
+   * @throw ZorbaException if an error occurs or the iterator has not been
+   * opened.
+   */
+  virtual bool
+  skip(int64_t count);
 };
 
+///////////////////////////////////////////////////////////////////////////////
 
-} /* namespace zorba */
+/**
+ * Creates an \c Iterator over some container type of \c Item, e.g.,
+ * <code>vector&lt;Item&gt;</code>.
+ *
+ * @param container The container to create the \c Iterator over.
+ * @param copy If \c false, \a container is swapped with an internal one thus
+ * clearing \a container; if \c true, a copy of \a container is made instead.
+ * @return Returns a new \c Iterator over \a container.
+ */
+template<class ContainerType>
+typename std::enable_if<
+  std::is_same<typename ContainerType::value_type,Item>::value,Iterator_t>::type
+make_iterator( ContainerType &container, bool copy = false ) {
+
+  struct iterator_impl : Iterator {
+    iterator_impl( ContainerType &container, bool copy ) : open_( false ) {
+      if ( copy )
+        container_ = container;
+      else
+        container_.swap( container );
+    }
+
+    void close() {
+      assert( open_ );
+      open_ = false;
+    }
+
+    bool isOpen() const {
+      return open_;
+    }
+
+    bool next( Item &result ) {
+      assert( open_ );
+      if ( pos_ == container_.end() )
+        return false;
+      result = *pos_;
+      ++pos_;
+      return true;
+    }
+
+    void open() {
+      assert( !open_ );
+      pos_ = container_.begin();
+      open_ = true;
+    }
+
+    ContainerType container_;
+    bool open_;
+    typename ContainerType::const_iterator pos_;
+  };
+
+  return Iterator_t( new iterator_impl( container, copy ) );
+};
+
+///////////////////////////////////////////////////////////////////////////////
+
+} // namespace zorba
 #endif
 /* vim:set et sw=2 ts=2: */

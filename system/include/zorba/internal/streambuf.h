@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,14 @@
 #include <streambuf>
 
 #include <zorba/config.h>
+#include <zorba/internal/proxy.h>
 
 namespace zorba {
 namespace internal {
 
 ///////////////////////////////////////////////////////////////////////////////
+
+typedef ztd::proxy<std::streambuf> proxy_streambuf;
 
 ZORBA_DLL_PUBLIC
 void dealloc_streambuf( std::streambuf* );

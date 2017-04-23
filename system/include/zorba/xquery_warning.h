@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,7 @@
 #ifndef ZORBA_XQUERY_WARNING_API_H
 #define ZORBA_XQUERY_WARNING_API_H
 
-#include <zorba/internal/qname.h>
-#include <zorba/internal/system_diagnostic.h>
+#include <zorba/diagnostic.h>
 #include <zorba/xquery_exception.h>
 
 namespace zorba {
@@ -26,12 +25,6 @@ namespace zorba {
 ///////////////////////////////////////////////////////////////////////////////
 
 typedef Diagnostic Warning;
-
-/**
- * A %ZorbaWarningCode is a diagnostic for all Zorba-specific warnings.
- */
-typedef internal::SystemDiagnostic<internal::ZorbaWarningQName>
-        ZorbaWarningCode;
 
 /**
  * Re-use an XQueryException as an %XQueryWarning to:

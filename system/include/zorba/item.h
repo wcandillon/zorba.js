@@ -1,5 +1,5 @@
 /*
- * Copyright 2006-2008 The FLWOR Foundation.
+ * Copyright 2006-2016 zorba.io
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +84,8 @@ public:
    */
   const Item& operator =(const store::Item* rhs);
 
+  bool operator ==(const Item& rhs) { return m_item == rhs.m_item; }
+
   /** \brief Destructor
    */
   ~Item();
@@ -147,8 +149,6 @@ public:
   Item
   getType() const;
 
-#ifdef ZORBA_WITH_JSON
-
   /**
    * \brief Check if the Item is a JSON Item, that is, part of the JSONiq
    * data model.
@@ -159,8 +159,6 @@ public:
    */
   bool
   isJSONItem() const;
-
-#endif /* ZORBA_WITH_JSON */
 
   /** \brief Get the atomization value of the Item.
    *
@@ -320,18 +318,21 @@ public:
     * The file \link simple.cpp \endlink contains some basic examples that demonstrate
     * the use of this function.
     *
-    * @param aBindings An STL list to receive the namespace bindings of this node (each
-    * represented as a std::pair<zorba::String,zorba::String> where the
-    * first string is the namespace prefix and the second is the namespace URI).
-    * @param aNsScoping An instance of NsScoping to declare which bindings to return:
-    * those local to the element; those local to all parent elements; or all bindings
-    * (the default).
+    * @param aBindings An std::vector to receive the namespace bindings of this
+    *        node (each represented as a std::pair<zorba::String,zorba::String>
+    *        where the first string is the namespace prefix and the second is the
+    *        namespace URI).
+    * @param scope A value to specify which bindings to return: all bindings (the
+    *        default); only those that are specified by the namespace declaration
+    *        attributes of the node (if any); or those that are implied by the
+    *        qnames of the node and its attributes plus those that are specified
+    *        by the namespace declaration attributes of the node (if any)
     * @throw ZorbaException if an error occured, e.g. the Item is not of type element.
     */
   void
-  getNamespaceBindings(NsBindings& aBindings,
-    store::StoreConsts::NsScoping aNsScoping = store::StoreConsts::ALL_NAMESPACES)
-    const;
+  getNamespaceBindings(
+      NsBindings& aBindings,
+      store::StoreConsts::NsScoping scope = store::StoreConsts::ALL_BINDINGS) const;
 
   /** \brief Get parent of this (node) Item.
    *
@@ -365,8 +366,6 @@ public:
    */
   int
   getNodeKind() const;
-
-#ifdef ZORBA_WITH_JSON
 
   /** \brief Get the kind of this (JSON) Item.
    *
@@ -419,9 +418,7 @@ public:
    * @throw ZorbaException if an error occured (e.g. the Item is not of type JSON Object).
    */
   Item
-  getObjectValue(String aName) const;
-
-#endif /* ZORBA_WITH_JSON */
+  getObjectValue(String const &aName) const;
 
   /**
    * Checks whether the item's content is streamable.
@@ -433,12 +430,25 @@ public:
 
   /**
    * Checks whether the item's streamable content is arbitrarily
-   * (forward anb backward) seekable.
+   * (forward and backward) seekable.
    *
    * @return true only if it is.
    */
   bool
   isSeekable() const;
+
+  /**
+   * Makes the item's streamable content arbitrarily
+   * (forward and backward) seekable.
+   *
+   * If the item is not streamable, the function has
+   * no effect.
+   * If the item is streamable, but has already been
+   * consumed, an error is raised.
+   *
+   */
+  void
+  ensureSeekable();
 
   /**
    * Gets an istream for the item's content.
@@ -480,13 +490,49 @@ public:
   Item
   getCollectionName() const;
 
+  /**
+   * Gets the total amount of memory this Item and all its child Items are
+   * using.
+   *
+   * @return said total amount of memory.
+   */
+  size_t
+  mem_size() const;
+
+  /**
+   * Returns the value and size of the given hexBinary item
+   *
+   * The value is a string which is hexBinary encoded if isEncoded()
+   * returns true. Otherwise, it is the original unencoded binary
+   * data.
+   *
+   * If the given item is streamable (i.e. isStreamable() returns true),
+   * the stream returned by getStream() should to be used to retrieve
+   * the value. Otherwise, the contents of the stream will be materialized
+   * in main memory.
+   */
+  const char*
+  getHexBinaryValue(size_t& s) const;
+
+  /*
+   * Returns a deep copy of the given item.
+   * Types are preserved. Namespaces are preserved and inherited.
+   *
+   * Note that this function is only available for XML nodes, JSON objects and
+   * arrays.
+   *
+   * @return  A deep copy of the XML node, JSON object or array.
+   */
+  Item
+  copy() const;
+
 private:
   friend class Unmarshaller;
 
   store::Item * m_item;
 private:
   //for plan serialization
-  friend void zorba::serialization::operator&(zorba::serialization::Archiver &ar, Item &obj);
+  friend void zorba::serialization::operator&(zorba::serialization::Archiver& ar, Item& obj);
 };
 
 } // namespace zorba
