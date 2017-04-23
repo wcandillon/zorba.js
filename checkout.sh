@@ -1,4 +1,4 @@
-bzr branch lp:~zorba-coders/zorba/llvm zorba
+git clone https://github.com/hfmanson/zorba.git
 cd zorba
 mkdir build
 
